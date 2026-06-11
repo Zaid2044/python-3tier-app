@@ -2,14 +2,7 @@ pipeline {
     agent any
 
     environment {
-        AWS_REGION = "ap-south-1"
-
-        ACCOUNT_ID = "234273295663"
-
-        BACKEND_REPO = "${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/python-backend"
-        FRONTEND_REPO = "${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/python-frontend"
-
-        IMAGE_TAG = "${BUILD_NUMBER}"
+        AWS_REGION = 'ap-south-1'
     }
 
     stages {
@@ -20,13 +13,30 @@ pipeline {
             }
         }
 
-        stage('Docker Login') {
+        stage('Get AWS Account') {
+            steps {
+                script {
+                    env.ACCOUNT_ID = sh(
+                        script: 'aws sts get-caller-identity --query Account --output text',
+                        returnStdout: true
+                    ).trim()
+
+                    env.BACKEND_REPO = "${env.ACCOUNT_ID}.dkr.ecr.${env.AWS_REGION}.amazonaws.com/python-backend"
+                    env.FRONTEND_REPO = "${env.ACCOUNT_ID}.dkr.ecr.${env.AWS_REGION}.amazonaws.com/python-frontend"
+
+                    env.IMAGE_TAG = "${env.BUILD_NUMBER}"
+                }
+            }
+        }
+
+        stage('Login To ECR') {
             steps {
                 sh '''
                 aws ecr get-login-password --region ${AWS_REGION} \
                 | docker login \
                 --username AWS \
-                --password-stdin ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+                --password-stdin \
+                ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
                 '''
             }
         }
@@ -44,7 +54,8 @@ pipeline {
         stage('Tag Backend Image') {
             steps {
                 sh '''
-                docker tag python-backend:${IMAGE_TAG} \
+                docker tag \
+                python-backend:${IMAGE_TAG} \
                 ${BACKEND_REPO}:${IMAGE_TAG}
                 '''
             }
@@ -53,7 +64,8 @@ pipeline {
         stage('Push Backend Image') {
             steps {
                 sh '''
-                docker push ${BACKEND_REPO}:${IMAGE_TAG}
+                docker push \
+                ${BACKEND_REPO}:${IMAGE_TAG}
                 '''
             }
         }
@@ -71,7 +83,8 @@ pipeline {
         stage('Tag Frontend Image') {
             steps {
                 sh '''
-                docker tag python-frontend:${IMAGE_TAG} \
+                docker tag \
+                python-frontend:${IMAGE_TAG} \
                 ${FRONTEND_REPO}:${IMAGE_TAG}
                 '''
             }
@@ -80,7 +93,8 @@ pipeline {
         stage('Push Frontend Image') {
             steps {
                 sh '''
-                docker push ${FRONTEND_REPO}:${IMAGE_TAG}
+                docker push \
+                ${FRONTEND_REPO}:${IMAGE_TAG}
                 '''
             }
         }
