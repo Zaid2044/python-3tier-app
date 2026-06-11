@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
@@ -20,6 +20,24 @@ class Product(db.Model):
     quantity = db.Column(db.Integer, nullable=False)
     price = db.Column(db.Numeric(10, 2), nullable=False)
 
+@app.route("/api/products", methods=["POST"])
+def create_product():
+
+    data = request.get_json()
+
+    product = Product(
+        name=data["name"],
+        quantity=data["quantity"],
+        price=data["price"]
+    )
+
+    db.session.add(product)
+    db.session.commit()
+
+    return jsonify({
+        "message": "Product created successfully",
+        "id": product.id
+    }), 201
 
 @app.route("/")
 def home():
