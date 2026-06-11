@@ -109,6 +109,22 @@ pipeline {
                 '''
             }
         }
+        stage('Clone GitOps Repo') {
+            steps {
+                dir('gitops') {
+                    git(
+                        branch: 'main',
+                        credentialsId: 'gitops-github',
+                        url: 'https://github.com/Zaid2044/multitier-eks-gitops.git'
+                    )
+                }
+
+                sh '''
+                echo "GitOps repo cloned successfully"
+                ls -la gitops
+                '''
+            }
+        }
     }
 
     post {
