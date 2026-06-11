@@ -302,7 +302,7 @@ docker compose up --build
 
 ## 📸 Screenshots
 
-> Add screenshots of your running app here after deployment.
+![Dashboard](image.png)
 
 ---
 
