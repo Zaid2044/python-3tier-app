@@ -1,0 +1,39 @@
+services:
+
+  postgres:
+    image: postgres:16
+    container_name: inventory-db
+
+    environment:
+      POSTGRES_DB: inventory
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  backend:
+    build:
+      context: ./backend
+
+    container_name: inventory-api
+
+    ports:
+      - "5000:5000"
+
+    depends_on:
+      - postgres
+
+  frontend:
+    image: nginx:alpine
+
+    container_name: inventory-frontend
+
+    ports:
+      - "8080:80"
+
+    volumes:
+      - ./frontend:/usr/share/nginx/html
