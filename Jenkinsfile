@@ -13,18 +13,25 @@ pipeline {
             }
         }
 
-        stage('Get AWS Account') {
+        stage('Prepare Variables') {
             steps {
                 script {
+
                     env.ACCOUNT_ID = sh(
                         script: 'aws sts get-caller-identity --query Account --output text',
                         returnStdout: true
                     ).trim()
 
-                    env.BACKEND_REPO = "${env.ACCOUNT_ID}.dkr.ecr.${env.AWS_REGION}.amazonaws.com/python-backend"
-                    env.FRONTEND_REPO = "${env.ACCOUNT_ID}.dkr.ecr.${env.AWS_REGION}.amazonaws.com/python-frontend"
+                    env.GIT_SHA = sh(
+                        script: 'git rev-parse --short HEAD',
+                        returnStdout: true
+                    ).trim()
 
-                    env.IMAGE_TAG = "${env.BUILD_NUMBER}"
+                    env.BACKEND_REPO = "${env.ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/python-backend"
+                    env.FRONTEND_REPO = "${env.ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/python-frontend"
+
+                    echo "AWS Account: ${env.ACCOUNT_ID}"
+                    echo "Git SHA: ${env.GIT_SHA}"
                 }
             }
         }
@@ -45,7 +52,7 @@ pipeline {
             steps {
                 sh '''
                 docker build \
-                -t python-backend:${IMAGE_TAG} \
+                -t python-backend:${GIT_SHA} \
                 ./backend
                 '''
             }
@@ -54,9 +61,11 @@ pipeline {
         stage('Tag Backend Image') {
             steps {
                 sh '''
-                docker tag \
-                python-backend:${IMAGE_TAG} \
-                ${BACKEND_REPO}:${IMAGE_TAG}
+                docker tag python-backend:${GIT_SHA} \
+                ${BACKEND_REPO}:${GIT_SHA}
+
+                docker tag python-backend:${GIT_SHA} \
+                ${BACKEND_REPO}:latest
                 '''
             }
         }
@@ -64,8 +73,8 @@ pipeline {
         stage('Push Backend Image') {
             steps {
                 sh '''
-                docker push \
-                ${BACKEND_REPO}:${IMAGE_TAG}
+                docker push ${BACKEND_REPO}:${GIT_SHA}
+                docker push ${BACKEND_REPO}:latest
                 '''
             }
         }
@@ -74,7 +83,7 @@ pipeline {
             steps {
                 sh '''
                 docker build \
-                -t python-frontend:${IMAGE_TAG} \
+                -t python-frontend:${GIT_SHA} \
                 ./frontend
                 '''
             }
@@ -83,9 +92,11 @@ pipeline {
         stage('Tag Frontend Image') {
             steps {
                 sh '''
-                docker tag \
-                python-frontend:${IMAGE_TAG} \
-                ${FRONTEND_REPO}:${IMAGE_TAG}
+                docker tag python-frontend:${GIT_SHA} \
+                ${FRONTEND_REPO}:${GIT_SHA}
+
+                docker tag python-frontend:${GIT_SHA} \
+                ${FRONTEND_REPO}:latest
                 '''
             }
         }
@@ -93,8 +104,8 @@ pipeline {
         stage('Push Frontend Image') {
             steps {
                 sh '''
-                docker push \
-                ${FRONTEND_REPO}:${IMAGE_TAG}
+                docker push ${FRONTEND_REPO}:${GIT_SHA}
+                docker push ${FRONTEND_REPO}:latest
                 '''
             }
         }
