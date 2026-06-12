@@ -12,7 +12,20 @@ from flask_cors import CORS
 from config import Config
 from models import db
 from routes import products_bp
+from prometheus_client import Counter, generate_latest
+from flask import Response
 
+REQUESTS = Counter(
+    "app_requests_total",
+    "Total application requests"
+)
+
+@app.route("/metrics")
+def metrics():
+    return Response(
+        generate_latest(),
+        mimetype="text/plain"
+    )
 # ─── Logging Setup ────────────────────────────────────────────────────────────
 # Structured logging so we can see what's happening in production containers.
 logging.basicConfig(
